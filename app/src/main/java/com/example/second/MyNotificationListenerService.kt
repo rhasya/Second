@@ -2,15 +2,12 @@ package com.example.second
 
 import android.app.Notification
 import android.content.Intent
-import android.os.Binder
-import android.os.IBinder
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.auth.FirebaseAuthCredentialsProvider
 
 private const val TAG = "MyNotificationService"
 
@@ -64,6 +61,9 @@ class MyNotificationListenerService : NotificationListenerService() {
         // 시스템UI 제외
         if (packageName.equals("com.android.systemui"))
             return
+        // Slack 제외
+        if (packageName.equals("com.Slack"))
+            return
 
         // 필요한 정보를 얻는다.
         // Get AppName
@@ -84,8 +84,18 @@ class MyNotificationListenerService : NotificationListenerService() {
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(localIntent)
 
+        // Send to Slack
+        sendTextToSlack("$appName, $title")
+
         // Save to Firebase
         val db = FirebaseFirestore.getInstance()
         db.collection("noti").add(NotiData(appName, title, sbn?.postTime ?: System.currentTimeMillis()))
+    }
+
+    /**
+     * Slack으로 메시지를 전송한다.
+     */
+    private fun sendTextToSlack(text: String) {
+        SendTextTask().execute(text)
     }
 }
